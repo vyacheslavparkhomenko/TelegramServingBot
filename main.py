@@ -8,7 +8,7 @@ from telebot import types
 bot = telebot.TeleBot('5324290474:AAFqcVvBOy2tHsrrrRjho9JL9SZB8cZzcwk')
 
 # global variable updating date
-date_update = 24
+date_update = 15
 
 # global variables for user
 name = 'x'
@@ -335,8 +335,8 @@ def record_time(message):
 
 bot.polling(none_stop=True)
 
-schedule.every().day.at("23:39").do(gsheet.sheet_reinitialize, current_date, date_update)
-schedule.every().day.at("23:39").do(gsheet.sheet_delete, current_date, max_current_date)
+schedule.every().day.at("22:00").do(gsheet.sheet_reinitialize, current_date, date_update - 1)
+schedule.every().day.at("22:00").do(gsheet.sheet_delete, current_date, max_current_date)
 
 while True:
     schedule.run_pending()
