@@ -8,7 +8,7 @@ from telebot import types
 bot = telebot.TeleBot('5324290474:AAFqcVvBOy2tHsrrrRjho9JL9SZB8cZzcwk')
 
 # global variable updating date
-date_update = 16
+date_update = 25
 
 # global variables for user
 name = 'x'
