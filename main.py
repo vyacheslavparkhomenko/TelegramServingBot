@@ -8,7 +8,7 @@ from telebot import types
 bot = telebot.TeleBot('5324290474:AAFqcVvBOy2tHsrrrRjho9JL9SZB8cZzcwk')
 
 # global variable updating date
-date_update = 15
+date_update = 16
 
 # global variables for user
 name = 'x'
@@ -115,6 +115,7 @@ def markup_time_zone(message):
 # bot start working (state 0)
 @bot.message_handler(commands=['start'])
 def start(message):
+    bot.clear_step_handler(message)
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
     create = types.KeyboardButton('Записатися на зміну')
     drop = types.KeyboardButton('Видалитися зі зміни')
@@ -209,6 +210,8 @@ def handle_text(message):
         last_name = message.from_user.last_name if message.from_user.last_name is not None else ''
         name = first_name + ' ' + last_name
 
+    elif message.text == 'Назад':
+        start(message)
     else:
         msg = bot.send_message(message.from_user.id, 'Ви ввели невірне значення. Оберіть будь-ласка значення з меню:')
         bot.register_next_step_handler(msg, handle_text)
