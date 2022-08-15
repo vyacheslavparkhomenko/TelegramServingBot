@@ -134,6 +134,7 @@ def report(flag_month):
             cnt = 0
             msg = header
         cnt = cnt + 1
+    msg_arr.append(msg)
 
     msg = ''
     cnt = -1
@@ -149,6 +150,7 @@ def report(flag_month):
             cnt = 0
             msg = header
         cnt = cnt + 1
+    msg_arr.append(msg)
 
     if flag_month == 2:
         ws3 = sh[2]
@@ -168,6 +170,7 @@ def report(flag_month):
                 cnt = 0
                 msg = header
             cnt = cnt + 1
+        msg_arr.append(msg)
 
         msg = ''
         cnt = -1
@@ -184,6 +187,7 @@ def report(flag_month):
                 cnt = 0
                 msg = header
             cnt = cnt + 1
+        msg_arr.append(msg)
     return msg_arr
 
 
