@@ -338,12 +338,3 @@ def record_time(message):
 
 bot.polling(none_stop=True)
 
-def sud():
-    print('x')
-
-schedule.every().day.at("22:01").do(gsheet.sheet_reinitialize, current_date, date_update - 1)
-schedule.every().day.at("22:01").do(gsheet.sheet_delete, current_date, max_current_date)
-schedule.every(4).second.do(sud)
-
-while True:
-    schedule.run_pending()
