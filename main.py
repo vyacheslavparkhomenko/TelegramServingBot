@@ -335,4 +335,9 @@ def record_time(message):
         bot.register_next_step_handler(msg, record_time)
 
 
-bot.polling(none_stop=True)
+while True:
+    try:
+        bot.polling(none_stop=True)
+    except Exception as e:
+        time.sleep(3)
+        print(e)
