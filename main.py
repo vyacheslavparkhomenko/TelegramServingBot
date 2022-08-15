@@ -1,7 +1,6 @@
 import telebot
 import gsheet
 import datetime
-import schedule
 from telebot import types
 
 # token for Telegram
@@ -337,4 +336,3 @@ def record_time(message):
 
 
 bot.polling(none_stop=True)
-
