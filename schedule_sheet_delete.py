@@ -1,4 +1,3 @@
-import schedule
 import gsheet
 import datetime
 
@@ -12,8 +11,4 @@ elif current_month == 2:
 else:
     max_current_date = 31
 
-schedule.every().day.at("23:30").do(gsheet.sheet_reinitialize, current_date, date_update)
-schedule.every().day.at("23:30").do(gsheet.sheet_delete, current_date, max_current_date)
-
-while True:
-    schedule.run_pending()
+gsheet.sheet_delete(current_date, max_current_date)
