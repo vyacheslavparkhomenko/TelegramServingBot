@@ -341,4 +341,4 @@ while True:
         bot.polling(none_stop=True)
     except Exception as e:
         time.sleep(3)
-        print(e)
+        print(str(e))
