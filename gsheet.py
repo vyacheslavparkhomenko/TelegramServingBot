@@ -69,7 +69,7 @@ def insert(date, time, place, name, flag_month):
             ws.update_value((index_x, index_y), name)
             msg = 'Ви були успішно записані на ' + date + ' число ' + time
         elif row[2] != '' and row[3] != '' and cnt != 1 and row[2] != name and row[3] != name:
-            msg = 'Нажаль, ця сміна заповнена.'
+            msg = 'Нажаль, ця зміна заповнена.'
         elif (row[3] == name or row[2] == name) and row[0] == date and row[1] == time:
             msg = 'Ви вже записані в цю зміну.'
 

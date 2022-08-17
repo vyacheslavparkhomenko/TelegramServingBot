@@ -347,13 +347,12 @@ def record_time(message):
         bot.register_next_step_handler(msg, record_time)
 
 
-logging.basicConfig(filename="log_" + str(datetime.date.today()) + ".txt",
-                    level=logging.DEBUG,
-                    format='%(asctime)s %(message)s',
-                    filemode='w')
-
 while True:
     try:
+        logging.basicConfig(filename="log_" + str(datetime.date.today()) + ".txt",
+                            level=logging.DEBUG,
+                            format='%(asctime)s %(message)s',
+                            filemode='w')
         logging.info('Bot running..')
         print('Bot running..')
         bot.polling(none_stop=True)
