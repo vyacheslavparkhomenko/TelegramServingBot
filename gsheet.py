@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 from datetime import date
 
-# token for gogglesheet
+# token for google sheets
 gc = pygsheets.authorize(service_account_file='token.json')
 
 

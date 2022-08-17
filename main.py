@@ -1,7 +1,9 @@
+import logging
+
 import telebot
 import gsheet
 import datetime
-import time
+from time import sleep
 from telebot import types
 
 # token for Telegram
@@ -66,7 +68,7 @@ def view_month(message):
 def markup_main_menu(message):
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
     create = types.KeyboardButton('Записатися на зміну')
-    drop = types.KeyboardButton('Видалитися зі зміни')
+    drop = types.KeyboardButton('Виписатися зі зміни')
     alter = types.KeyboardButton('Мої зміни')
     graph = types.KeyboardButton('Графік стенду')
 
@@ -118,7 +120,7 @@ def start(message):
     bot.clear_step_handler(message)
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
     create = types.KeyboardButton('Записатися на зміну')
-    drop = types.KeyboardButton('Видалитися зі зміни')
+    drop = types.KeyboardButton('Виписатися зі зміни')
     alter = types.KeyboardButton('Мої зміни')
     graph = types.KeyboardButton('Графік стенду')
 
@@ -130,7 +132,7 @@ def start(message):
 
 # start 1 of bot (calc name and select place or month for recording (available from 24th every month)
 # state 1 of bot: select my serving times
-@bot.message_handler()
+@bot.message_handler(content_types=['text'])
 def handle_text(message):
     global name, flag_option, date_update
     if message.text == 'Записатися на зміну':
@@ -184,7 +186,7 @@ def handle_text(message):
         for msg in msg_arr:
             bot.send_message(message.chat.id, msg)
 
-    elif message.text == 'Видалитися зі зміни':
+    elif message.text == 'Виписатися зі зміни':
         flag_option = 1
         if current_date < date_update:
             markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
@@ -211,6 +213,8 @@ def handle_text(message):
         name = first_name + ' ' + last_name
 
     elif message.text == 'Назад':
+        start(message)
+    elif message.text == '/start':
         start(message)
     else:
         msg = bot.send_message(message.from_user.id, 'Ви ввели невірне значення. Оберіть будь-ласка значення з меню:')
@@ -239,6 +243,8 @@ def record_month(message):
         elif flag_option == 1:
             msg = bot.send_message(message.from_user.id, 'Виберіть місце служіння, з якого ви хочете виписатися:', reply_markup=markup)
         bot.register_next_step_handler(msg, record_place)
+    elif message.text == '/start':
+        start(message)
 
 
 # state 2 of bot if current_date < 24: select place of serving
@@ -256,11 +262,13 @@ def record_place(message):
             markup_main_menu(message)
     if message.text in ('Лікарня', 'Автостанція'):
         if flag_option == 0:
-            msg = bot.send_message(message.from_user.id, 'Введіть дату на яку ви хочете записатися:')
+            msg = bot.send_message(message.from_user.id, 'Введіть дату(число) на яку ви хочете записатися:')
         elif flag_option == 1:
-            msg = bot.send_message(message.from_user.id, 'Введіть дату на яку ви хочете виписатися:')
+            msg = bot.send_message(message.from_user.id, 'Введіть дату(число) на яку ви хочете виписатися:')
         bot.register_next_step_handler(msg, record_date)
-    elif message.text not in ('Лікарня', 'Автостанція', 'Назад'):
+    elif message.text == '/start':
+        start(message)
+    elif message.text not in ('Лікарня', 'Автостанція', 'Назад', '/start'):
         msg = bot.send_message(message.from_user.id, 'Ви ввели невірне місце служіння. Будь-ласка, оберіть значення в меню:')
         bot.register_next_step_handler(msg, record_place)
 
@@ -273,6 +281,8 @@ def record_date(message):
     date = message.text
     if date == 'Назад':
         markup_place_menu(message)
+    elif message.text == '/start':
+        start(message)
     elif (flag_month == 0 and date.isdigit() and current_date <= int(date) <= max_current_date and message.text != 'Назад') or \
             (flag_month == 2 and date.isdigit() and 1 <= int(date) <= max_next_date and message.text != 'Назад'):
         # recording for new month is available from 24th of current moth
@@ -292,7 +302,7 @@ def record_date(message):
         bot.register_next_step_handler(msg, record_time)
     else:
         bot.send_message(message.chat.id, 'Невірна дата. Будь ласка, спробуйте ще раз!')
-        msg = bot.send_message(message.from_user.id, 'Введіть бажаєму дату запису:')
+        msg = bot.send_message(message.from_user.id, 'Введіть нову дату (число):')
         bot.register_next_step_handler(msg, record_date)
 
 
@@ -308,9 +318,9 @@ def record_time(message):
 
         markup.add(item1)
         if flag_option == 0:
-            msg = bot.send_message(message.chat.id, 'Введіть іншу дату на яку ви хочете записатися:', reply_markup=markup)
+            msg = bot.send_message(message.chat.id, 'Введіть іншу дату(число) на яку ви хочете записатися:', reply_markup=markup)
         elif flag_option == 1:
-            msg = bot.send_message(message.chat.id, 'Введіть іншу дату на яку ви хочете виписатися:', reply_markup=markup)
+            msg = bot.send_message(message.chat.id, 'Введіть іншу дату(число) на яку ви хочете виписатися:', reply_markup=markup)
         bot.register_next_step_handler(msg, record_date)
 
     elif time in ('08:00-10:00', '10:00-12:00', '12:00-14:00', '14:00-16:00', '16:00-18:00', '18:00-20:00') and flag_option == 0:
@@ -330,15 +340,27 @@ def record_time(message):
             markup_time_zone(message)
         else:
             markup_main_menu(message)
-
+    elif message.text == '/start':
+        start(message)
     else:
         msg = bot.send_message(message.from_user.id, 'Ви ввели неправильне значення. Оберіть будь-ласка зміну у меню:')
         bot.register_next_step_handler(msg, record_time)
 
 
+logging.basicConfig(filename="log_" + str(datetime.date.today()) + ".txt",
+                    level=logging.DEBUG,
+                    format='%(asctime)s %(message)s',
+                    filemode='w')
+
 while True:
     try:
+        logging.info('Bot running..')
+        print('Bot running..')
         bot.polling(none_stop=True)
     except Exception as e:
-        time.sleep(3)
+        logging.error(e)
+        bot.stop_polling()
+        sleep(3)
         print(str(e))
+        print('Running again!')
+        logging.info('Running again!')
