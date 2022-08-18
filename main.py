@@ -1,3 +1,7 @@
+# version 1.2
+# TelegramServingBot is a bot for inserting, deleting, viewing records about public serving
+# Created by Viacheslav Parkhomenko
+# Date of release: 18-AUG-2022
 import logging
 
 import telebot
@@ -311,7 +315,6 @@ def record_place(message):
         markup_main_menu(message)
 
 
-
 # state 3(<24): select date of serving
 # state 4(>=24): select date of serving
 def record_date(message):
@@ -349,7 +352,6 @@ def record_date(message):
 # state 5(>=24): select time of serving
 def record_time(message):
     global date, time
-    date_l = ''
     time = message.text
     if time == 'Назад':
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
