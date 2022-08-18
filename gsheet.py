@@ -1,17 +1,18 @@
 import pygsheets
 import numpy as np
 import pandas as pd
-from datetime import date
+import datetime
 
 # token for google sheets
 gc = pygsheets.authorize(service_account_file='token.json')
 
 
+# function which delete every last day of month lists for current month and rename lists for new monnths
 def sheet_delete(current_date, max_current_date):
     if current_date != max_current_date:
         return
-    new_month = date.today().month + 1
-    year = str(date.today().year + 1) if new_month == 12 else str(date.today().year)
+    new_month = datetime.date.today().month + 1
+    year = str(datetime.date.today().year + 1) if new_month == 12 else str(datetime.date.today().year)
     new_month = '0' + str(new_month) if new_month < 10 else str(new_month)
     sh = gc.open('Графік Служіння')
     sh.del_worksheet(sh.worksheet_by_title('Автостанція'))
@@ -20,11 +21,12 @@ def sheet_delete(current_date, max_current_date):
     sh.worksheet_by_title('Лікарня ' + new_month + '.' + year).title = 'Лікарня'
 
 
+# function which create new lists for new month every 24 date of current month
 def sheet_reinitialize(current_date, date_update):
     if current_date < date_update:
         return
-    new_month = date.today().month + 1
-    year = str(date.today().year + 1) if new_month == 12 else str(date.today().year)
+    new_month = datetime.date.today().month + 1
+    year = str(datetime.date.today().year + 1) if new_month == 12 else str(datetime.date.today().year)
 
     if new_month % 2 == 0 and new_month not in (8, 2):
         max_day = 30
@@ -51,6 +53,7 @@ def sheet_reinitialize(current_date, date_update):
     return data
 
 
+# function for inserting data into gogglesheet
 def insert(date, time, place, name, flag_month):
     cnt = 0
     sh = gc.open('Графік Служіння')
@@ -76,6 +79,7 @@ def insert(date, time, place, name, flag_month):
     return msg
 
 
+# function for deleting data from googlesheet
 def delete(date, time, place, name, flag_month):
     cnt = 0
     sh = gc.open('Графік Служіння')
@@ -98,6 +102,7 @@ def delete(date, time, place, name, flag_month):
     return msg
 
 
+# function which output data only for user
 def my_records(name, flag_month=0):
     sh = gc.open('Графік Служіння')
     ws1 = sh[0 + flag_month]
@@ -118,6 +123,7 @@ def my_records(name, flag_month=0):
     return msg
 
 
+# function which prepared report for place of serving and current or next month
 def report(flag_month, place):
     sh = gc.open('Графік Служіння')
     ws = sh[flag_month + place]
@@ -138,3 +144,17 @@ def report(flag_month, place):
     msg_arr.append(msg)
 
     return msg_arr
+
+
+def list_of_partner(place, date, time, flag_month):
+    sh = gc.open('Графік Служіння')
+    ws = sh[flag_month + place]
+    partner = ''
+    for row in ws:
+        if row[0] == date and row[1] == time:
+            if row[2] != '':
+                partner = row[2]
+            elif row[3] != '':
+                partner = row[3]
+
+    return partner

@@ -1,4 +1,4 @@
-# version 1.2
+# version 1.3
 # TelegramServingBot is a bot for inserting, deleting, viewing records about public serving
 # Created by Viacheslav Parkhomenko
 # Date of release: 18-AUG-2022
@@ -371,6 +371,10 @@ def record_time(message):
         if msg.text == 'Нажаль, ця зміна заповнена.' or msg.text == 'Ви вже записані в цю зміну.':
             markup_time_zone(message)
         else:
+            partner = gsheet.list_of_partner(place,date_l, time, flag_month)
+            if partner != '':
+                msg = 'З вами на зміні служить вісник ' + partner + '.'
+                bot.send_message(message.from_user.id, msg)
             markup_main_menu(message)
 
     elif time in ('08:00-10:00', '10:00-12:00', '12:00-14:00', '14:00-16:00', '16:00-18:00', '18:00-20:00') and flag_option == 1:
