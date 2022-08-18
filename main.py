@@ -10,7 +10,7 @@ from telebot import types
 bot = telebot.TeleBot('5324290474:AAFqcVvBOy2tHsrrrRjho9JL9SZB8cZzcwk')
 
 # global variable updating date
-date_update = 25
+date_update = 24
 
 # global variables for user
 name = 'x'
@@ -18,10 +18,10 @@ date = 'x'
 time = 'x'
 place = 'x'
 
-# flag_month show which month has been selected by user 0 current, 2 next
+# flag_month show which month has been selected by user 0-current, 2-next
 flag_month = 0
 
-# flag_option deleting or inserting data: 0-insert, 1-delete
+# flag_option deleting or inserting data: 0-insert, 1-delete, 2-view
 flag_option = 0
 
 # calculating current date, month and next month
@@ -46,8 +46,6 @@ else:
 
 
 # ---------------------------------------additional functionality---------------------------------------
-
-
 def view_month(message):
     global name
     first_name = message.from_user.first_name if message.from_user.first_name is not None else ''
@@ -176,15 +174,33 @@ def handle_text(message):
             place2 = types.KeyboardButton('Наступний місяць')
             item1 = types.KeyboardButton('Назад')
             markup.add(place1, place2, item1)
-            msg = bot.send_message(message.from_user.id, 'Оберіть за який ви хочете переглянути свої зміни:',
+            msg = bot.send_message(message.from_user.id, 'Оберіть за який місяць ви хочете переглянути свої зміни:',
                                    reply_markup=markup)
             bot.register_next_step_handler(msg, view_month)
 
     # Output schedule (from 24 available for current and next month)
     elif message.text == 'Графік стенду':
-        msg_arr = gsheet.report(flag_month=0) if current_date < 24 else gsheet.report(flag_month=2)
-        for msg in msg_arr:
-            bot.send_message(message.chat.id, msg)
+        flag_option = 2
+        if current_date < date_update:
+            markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+            place1 = types.KeyboardButton('Автостанція')
+            place2 = types.KeyboardButton('Лікарня')
+            item1 = types.KeyboardButton('Назад')
+            markup.add(place1, place2, item1)
+            msg = bot.send_message(message.from_user.id,
+                                   'Оберіть місце служіння для якого ви хочете переглянути графік:',
+                                   reply_markup=markup)
+            bot.register_next_step_handler(msg, record_place)
+
+        else:
+            markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+            place1 = types.KeyboardButton('Поточний місяць')
+            place2 = types.KeyboardButton('Наступний місяць')
+            item1 = types.KeyboardButton('Назад')
+            markup.add(place1, place2, item1)
+            msg = bot.send_message(message.from_user.id, 'Оберіть за який місяць ви хочете переглянути графік:',
+                                   reply_markup=markup)
+            bot.register_next_step_handler(msg, record_month)
 
     elif message.text == 'Виписатися зі зміни':
         flag_option = 1
@@ -228,11 +244,15 @@ def record_month(message):
         flag_month = 0
     elif message.text == 'Наступний місяць':
         flag_month = 2
-    else:
+    elif message.text == 'Назад':
         markup_main_menu(message)
+    elif message.text == '/start':
+        start(message)
+    else:
+        msg = bot.send_message(message.from_user.id, 'Ви ввели невірний місяць. Будь ласка, оберіть значення з меню!')
+        bot.register_next_step_handler(msg, record_month)
 
     if message.text in ('Поточний місяць', 'Наступний місяць'):
-        # if entered not return button
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
         place1 = types.KeyboardButton('Автостанція')
         place2 = types.KeyboardButton('Лікарня')
@@ -242,15 +262,18 @@ def record_month(message):
             msg = bot.send_message(message.from_user.id, 'Оберіть місце служіння:', reply_markup=markup)
         elif flag_option == 1:
             msg = bot.send_message(message.from_user.id, 'Виберіть місце служіння, з якого ви хочете виписатися:', reply_markup=markup)
+        elif flag_option == 2:
+            msg = bot.send_message(message.from_user.id,
+                                   'Оберіть місце служіння для якого ви хочете переглянути графік:',
+                                   reply_markup=markup)
         bot.register_next_step_handler(msg, record_place)
-    elif message.text == '/start':
-        start(message)
 
 
 # state 2 of bot if current_date < 24: select place of serving
 # state 3 of bot if current_date >= 24: select place of serving
 def record_place(message):
-    global place
+    global place, flag_option, date_update
+
     if message.text == 'Автостанція':
         place = 0
     elif message.text == 'Лікарня':
@@ -260,17 +283,33 @@ def record_place(message):
             markup_month_menu(message)
         else:
             markup_main_menu(message)
-    if message.text in ('Лікарня', 'Автостанція'):
-        if flag_option == 0:
-            msg = bot.send_message(message.from_user.id, 'Введіть дату(число) на яку ви хочете записатися:')
-        elif flag_option == 1:
-            msg = bot.send_message(message.from_user.id, 'Введіть дату(число) на яку ви хочете виписатися:')
-        bot.register_next_step_handler(msg, record_date)
     elif message.text == '/start':
         start(message)
     elif message.text not in ('Лікарня', 'Автостанція', 'Назад', '/start'):
         msg = bot.send_message(message.from_user.id, 'Ви ввели невірне місце служіння. Будь-ласка, оберіть значення в меню:')
         bot.register_next_step_handler(msg, record_place)
+
+    # mode for changing data
+    if message.text in ('Лікарня', 'Автостанція') and flag_option != 2:
+        if flag_option == 0:
+            msg = bot.send_message(message.from_user.id, 'Введіть дату(число) на яку ви хочете записатися:')
+        elif flag_option == 1:
+            msg = bot.send_message(message.from_user.id, 'Введіть дату(число) на яку ви хочете виписатися:')
+        bot.register_next_step_handler(msg, record_date)
+
+    # mode for reviewing data
+    if message.text == 'Автостанція' and flag_option == 2:
+        msg_arr = gsheet.report(flag_month=0, place=0) if current_date < date_update else gsheet.report(flag_month=2, place=0)
+        for msg in msg_arr:
+            bot.send_message(message.chat.id, msg)
+        markup_main_menu(message)
+
+    elif message.text == 'Лікарня' and flag_option == 2:
+        msg_arr = gsheet.report(flag_month=0, place=1) if current_date < date_update else gsheet.report(flag_month=2, place=1)
+        for msg in msg_arr:
+            bot.send_message(message.chat.id, msg)
+        markup_main_menu(message)
+
 
 
 # state 3(<24): select date of serving

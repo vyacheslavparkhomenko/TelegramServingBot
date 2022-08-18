@@ -97,6 +97,7 @@ def delete(date, time, place, name, flag_month):
             msg = 'Ви не були записані на цю зміну!'
     return msg
 
+
 def my_records(name, flag_month=0):
     sh = gc.open('Графік Служіння')
     ws1 = sh[0 + flag_month]
@@ -116,14 +117,14 @@ def my_records(name, flag_month=0):
 
     return msg
 
-def report(flag_month):
+
+def report(flag_month, place):
     sh = gc.open('Графік Служіння')
-    ws1 = sh[0]
-    ws2 = sh[1]
+    ws = sh[flag_month + place]
     msg = ''
-    msg_arr = ['Автостанція:']
+    msg_arr = []
     cnt = -1
-    for row in ws1:
+    for row in ws:
         if cnt == -1:
             msg = msg + row[0] + '            ' + row[1] + '           ' + row[2] + '                      ' + row[3] + chr(10)
             header = msg
@@ -136,67 +137,4 @@ def report(flag_month):
         cnt = cnt + 1
     msg_arr.append(msg)
 
-    msg = ''
-    cnt = -1
-    msg_arr.append('Лікарня:')
-    for row in ws2:
-        if cnt == -1:
-            msg = msg + row[0] + '            ' + row[1] + '           ' + row[2] + '                      ' + row[3] + chr(10)
-            header = msg
-        if cnt < 50 and cnt != -1:
-            msg = msg + row[0] + '  ' + row[1] + '  ' + row[2] + '  ' + row[3] + chr(10)
-        if cnt == 50 and cnt != -1:
-            msg_arr.append(msg)
-            cnt = 0
-            msg = header
-        cnt = cnt + 1
-    msg_arr.append(msg)
-
-    if flag_month == 2:
-        ws3 = sh[2]
-        ws4 = sh[3]
-        msg = ''
-        msg_arr = ['Автостанція наступний місяць:']
-        cnt = -1
-        for row in ws3:
-            if cnt == -1:
-                msg = msg + row[0] + '            ' + row[1] + '           ' + row[2] + '                      ' + row[3] + chr(
-                    10)
-                header = msg
-            if cnt < 50 and cnt != -1:
-                msg = msg + row[0] + '  ' + row[1] + '  ' + row[2] + '  ' + row[3] + chr(10)
-            if cnt == 50 and cnt != -1:
-                msg_arr.append(msg)
-                cnt = 0
-                msg = header
-            cnt = cnt + 1
-        msg_arr.append(msg)
-
-        msg = ''
-        cnt = -1
-        msg_arr.append('Лікарня наступний місяць:')
-        for row in ws4:
-            if cnt == -1:
-                msg = msg + row[0] + '            ' + row[1] + '           ' + row[2] + '                      ' + row[3] + chr(
-                    10)
-                header = msg
-            if cnt < 50 and cnt != -1:
-                msg = msg + row[0] + '  ' + row[1] + '  ' + row[2] + '  ' + row[3] + chr(10)
-            if cnt == 50 and cnt != -1:
-                msg_arr.append(msg)
-                cnt = 0
-                msg = header
-            cnt = cnt + 1
-        msg_arr.append(msg)
     return msg_arr
-
-
-
-
-
-
-
-
-
-
-
