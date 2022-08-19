@@ -3,10 +3,12 @@
 # Created by Viacheslav Parkhomenko
 # Date of release: 18-AUG-2022
 import logging
+import datetime
+import re
 
 import telebot
 import gsheet
-import datetime
+
 from time import sleep
 from telebot import types
 
@@ -20,7 +22,7 @@ date_update = 24
 name = 'x'
 date = 'x'
 time = 'x'
-place = 'x'
+place = 0
 
 # flag_month show which month has been selected by user 0-current, 2-next
 flag_month = 0
@@ -31,7 +33,23 @@ flag_option = 0
 # calculating current date, month and next month
 current_date = datetime.date.today().day
 current_month = datetime.date.today().month
-next_month = datetime.date.today().month + 1
+current_year = datetime.date.today().year
+next_month = current_month + 1 if current_month < 12 else 1
+
+# list of days to allow for recording: 0-Monday..6-Sunday
+list_of_days = [1, 5]
+
+#dictionary of time slots for serving
+# 0-Autostation, 1-Hospital
+time_slots = [{
+    1: ['10:00-12:00', '12:00-14:00'],
+    5: ['09:00-11:00', '11:00-13:00']
+}
+,{
+    1: ['08:00-10:00', '10:00-12:00', '12:00-14:00'],
+    5: ['08:00-10:00', '10:00-12:00', '12:00-14:00']
+}]
+
 
 # calculating max date for month
 if current_month % 2 == 0 and current_month not in (8, 2):
@@ -63,6 +81,29 @@ def view_month(message):
     elif message.text == 'Наступний місяць':
         msg = gsheet.my_records(name, flag_month=2)
         bot.send_message(message.from_user.id, msg)
+
+
+#function for forming date of record
+def create_date(l_date, l_current_month, l_current_year, l_flag_month):
+    date_l = ''
+    if l_flag_month == 2:
+        if l_current_month == 12:
+            l_current_month = 1
+            l_current_year = l_current_year + 1
+
+    if l_date < 10:
+        date_l = '0' + str(l_date)
+    else:
+        date_l = str(l_date)
+
+    if l_current_month < 10:
+        date_l = date_l + '.0' + str(l_current_month)
+    else:
+        date_l = date_l + '.' + str(l_current_month)
+
+    date_l = date_l + '.' + str(l_current_year)
+
+    return date_l
 
 
 # ---------------------------------------markup functions---------------------------------------
@@ -101,7 +142,36 @@ def markup_month_menu(message):
     bot.register_next_step_handler(msg, record_month)
 
 
-def markup_time_zone(message):
+# function for markuping menu for time slot from 08:00
+def markup_time_zone1():
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    item1 = types.KeyboardButton('08:00-10:00')
+    item2 = types.KeyboardButton('10:00-12:00')
+    item3 = types.KeyboardButton('12:00-14:00')
+    item4 = types.KeyboardButton('14:00-16:00')
+    item5 = types.KeyboardButton('16:00-18:00')
+    item6 = types.KeyboardButton('18:00-20:00')
+    item7 = types.KeyboardButton('Назад')
+    markup.add(item1, item2, item3, item4, item5, item6, item7)
+
+    return markup
+
+
+# function for markuping menu for time slot from 09:00
+def markup_time_zone2():
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    item1 = types.KeyboardButton('09:00-11:00')
+    item2 = types.KeyboardButton('11:00-13:00')
+    item3 = types.KeyboardButton('13:00-15:00')
+    item4 = types.KeyboardButton('15:00-17:00')
+    item5 = types.KeyboardButton('17:00-19:00')
+    item7 = types.KeyboardButton('Назад')
+    markup.add(item1, item2, item3, item4, item5, item7)
+
+    return markup
+
+
+def markup_time_zone1_rerecord(message):
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
     item1 = types.KeyboardButton('08:00-10:00')
     item2 = types.KeyboardButton('10:00-12:00')
@@ -113,6 +183,30 @@ def markup_time_zone(message):
     markup.add(item1, item2, item3, item4, item5, item6, item7)
     msg = bot.send_message(message.from_user.id, 'Оберіть будь-ласка іншу зміну:', reply_markup=markup)
     bot.register_next_step_handler(msg, record_time)
+
+
+def markup_time_zone2_rerecord(message):
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    item1 = types.KeyboardButton('09:00-11:00')
+    item2 = types.KeyboardButton('11:00-13:00')
+    item3 = types.KeyboardButton('13:00-15:00')
+    item4 = types.KeyboardButton('15:00-17:00')
+    item5 = types.KeyboardButton('17:00-19:00')
+    item7 = types.KeyboardButton('Назад')
+    markup.add(item1, item2, item3, item4, item5, item7)
+    msg = bot.send_message(message.from_user.id, 'Оберіть будь-ласка іншу зміну:', reply_markup=markup)
+    bot.register_next_step_handler(msg, record_time)
+
+
+def select_markup_timezone(weekday, message):
+    if place == 0 and weekday == 1:
+        markup_time_zone1_rerecord(message)
+    if place == 0 and weekday == 5:
+        markup_time_zone2_rerecord(message)
+    if place == 1 and weekday == 1:
+        markup_time_zone1_rerecord(message)
+    if place == 1 and weekday == 5:
+        markup_time_zone1_rerecord(message)
 
 
 # ---------------------------------------bot states functions---------------------------------------
@@ -148,6 +242,7 @@ def handle_text(message):
             markup.add(place1, place2, item1)
             msg = bot.send_message(message.from_user.id, 'Оберіть місце служіння:', reply_markup=markup)
             bot.register_next_step_handler(msg, record_place)
+
         # if it is greater than 24, then will added adding menu
         else:
             markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
@@ -325,18 +420,32 @@ def record_date(message):
         markup_place_menu(message)
     elif message.text == '/start':
         start(message)
-    elif (flag_month == 0 and date.isdigit() and current_date <= int(date) <= max_current_date and message.text != 'Назад') or \
-            (flag_month == 2 and date.isdigit() and 1 <= int(date) <= max_next_date and message.text != 'Назад'):
+    elif ((flag_month == 0 and date.isdigit() and current_date <= int(date) <= max_current_date and message.text != 'Назад') or \
+            (flag_month == 2 and date.isdigit() and 1 <= int(date) <= max_next_date and message.text != 'Назад')):
+
+        weekday = datetime.date(current_year, current_month, int(date)).weekday()
+
         # recording for new month is available from 24th of current moth
-        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        item1 = types.KeyboardButton('08:00-10:00')
-        item2 = types.KeyboardButton('10:00-12:00')
-        item3 = types.KeyboardButton('12:00-14:00')
-        item4 = types.KeyboardButton('14:00-16:00')
-        item5 = types.KeyboardButton('16:00-18:00')
-        item6 = types.KeyboardButton('18:00-20:00')
-        item7 = types.KeyboardButton('Назад')
-        markup.add(item1, item2, item3, item4, item5, item6, item7)
+        if weekday == list_of_days[0] and place == 0:
+            # markup from 08:00
+            markup = markup_time_zone1()
+        elif weekday == list_of_days[1] and place == 0:
+            # markup from 09:00
+            markup = markup_time_zone2()
+        elif weekday == list_of_days[0] and place == 1:
+            # markup from 08:00
+            markup = markup_time_zone1()
+        elif weekday == list_of_days[1] and place == 1:
+            # markup from 08:00
+            markup = markup_time_zone1()
+        elif weekday not in list_of_days:
+            if flag_option == 0:
+                bot.send_message(message.chat.id, 'На цю дату закрито можливість записатися на стенд!')
+            elif flag_option == 1:
+                bot.send_message(message.chat.id, 'На цю дату було недоступно записатися на стенд!')
+            msg = bot.send_message(message.from_user.id, 'Введіть нову дату (число):')
+            bot.register_next_step_handler(msg, record_date)
+
         if flag_option == 0:
             msg = bot.send_message(message.chat.id, 'Виберіть зміну на яку ви хочете записатися:', reply_markup=markup)
         elif flag_option == 1:
@@ -353,40 +462,53 @@ def record_date(message):
 def record_time(message):
     global date, time
     time = message.text
+    weekday = datetime.date(current_year, current_month, int(date)).weekday()
     if time == 'Назад':
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
         item1 = types.KeyboardButton('Назад')
-
         markup.add(item1)
+
+        # re-record date
         if flag_option == 0:
             msg = bot.send_message(message.chat.id, 'Введіть іншу дату(число) на яку ви хочете записатися:', reply_markup=markup)
         elif flag_option == 1:
             msg = bot.send_message(message.chat.id, 'Введіть іншу дату(число) на яку ви хочете виписатися:', reply_markup=markup)
         bot.register_next_step_handler(msg, record_date)
 
-    elif time in ('08:00-10:00', '10:00-12:00', '12:00-14:00', '14:00-16:00', '16:00-18:00', '18:00-20:00') and flag_option == 0:
-        date_l = date + '.0' + str(datetime.date.today().month) + '.' + str(datetime.date.today().year)
+    elif time in time_slots[place].get(weekday) and flag_option == 0:
+        date_l = create_date(int(date), current_month, current_year, flag_month)
         msg_gsht = gsheet.insert(date_l, time, place, name, flag_month)
         msg = bot.send_message(message.from_user.id, msg_gsht)
         if msg.text == 'Нажаль, ця зміна заповнена.' or msg.text == 'Ви вже записані в цю зміну.':
-            markup_time_zone(message)
+            select_markup_timezone(weekday, message)
         else:
-            partner = gsheet.list_of_partner(place,date_l, time, flag_month)
+            partner = gsheet.list_of_partner(place,date_l, time, name, flag_month)
             if partner != '':
                 msg = 'З вами на зміні служить вісник ' + partner + '.'
                 bot.send_message(message.from_user.id, msg)
             markup_main_menu(message)
 
-    elif time in ('08:00-10:00', '10:00-12:00', '12:00-14:00', '14:00-16:00', '16:00-18:00', '18:00-20:00') and flag_option == 1:
-        date_l = date + '.0' + str(datetime.date.today().month) + '.' + str(datetime.date.today().year)
+    elif time in time_slots[place].get(weekday) and flag_option == 1:
+        date_l = create_date(int(date), current_month, current_year, flag_month)
         msg_gsht = gsheet.delete(date_l, time, place, name, flag_month)
         bot.send_message(message.from_user.id, msg_gsht)
         if msg_gsht == 'Ви не були записані на цю зміну!':
-            markup_time_zone(message)
+            select_markup_timezone(weekday, message)
         else:
             markup_main_menu(message)
+
+    elif time not in time_slots[place].get(weekday) and re.fullmatch(r'\d\d[:]\d\d[-]\d\d[:]\d\d', time):
+        if flag_option == 0:
+            msg = bot.send_message(message.from_user.id,
+                                   'На цю зміну обмежено запис! Оберіть будь-ласка іншу зміну:')
+        elif flag_option == 1:
+            msg = bot.send_message(message.from_user.id,
+                                   'На цю зміну було обмежено запис! Оберіть будь-ласка іншу зміну:')
+        bot.register_next_step_handler(msg, record_time)
+
     elif message.text == '/start':
         start(message)
+
     else:
         msg = bot.send_message(message.from_user.id, 'Ви ввели неправильне значення. Оберіть будь-ласка зміну у меню:')
         bot.register_next_step_handler(msg, record_time)
