@@ -192,8 +192,8 @@ def insert(date, time, place, name, flag_month):
     # check date and time in other place for serving and compare that server has been recorded or not
     for row in ws1:
         if (row[2] == name or row[3] == name) and row[0] == date and (row[1] == time or
-                                                                      row[1][0:2] <= time[0:2] <= row[1][6:8] or
-                                                                      row[1][0:2] <= time[6:8] <= row[1][6:8]):
+                                                                      row[1][0:2] < time[0:2] < row[1][6:8] or
+                                                                      row[1][0:2] < time[6:8] < row[1][6:8]):
             flg_rec = 2
 
     if flg_rec != 2:
@@ -214,7 +214,7 @@ def insert(date, time, place, name, flag_month):
             elif (row[3] == name or row[2] == name) and row[0] == date and row[1] == time:
                 msg = 'Ви вже записані в цю зміну.'
     else:
-        msg = 'Ви вже записані на цю зміну в іншому місці для служіння!'
+        msg = 'Ви вже записані на цей час в іншому місці для служіння!'
     return msg
 
 
