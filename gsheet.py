@@ -1,25 +1,65 @@
 import pygsheets
-import numpy as np
 import pandas as pd
 import datetime
 
 # token for google sheets
 gc = pygsheets.authorize(service_account_file='token.json')
 
-
+# dictionary of time slots: 0-Monday, 5-Saturday and available timeslots
 time_slots = [{
     1: ['10:00-12:00', '12:00-14:00'],
     5: ['09:00-11:00', '11:00-13:00']
-}
-,{
+},
+    {
     1: ['08:00-10:00', '10:00-12:00', '12:00-14:00'],
     5: ['08:00-10:00', '10:00-12:00', '12:00-14:00']
 }]
 
 
+# function get weekday for any date
 def get_weekday(date):
     weekday = datetime.datetime.strptime(date, '%d.%m.%Y').weekday()
     return weekday
+
+
+# function which output information about schedule of public serving
+def schedule_public(place):
+    msg = ''
+    for rec in time_slots[place]:
+        if place == 0:
+            msg = 'Автостанція:' + chr(10)
+        else:
+            msg = msg + 'Лікарня:' + chr(10)
+        d_rec = dict(rec)
+        if d_rec.get(0):
+            msg = msg + 'Понеділок:' + chr(10)
+            for ar in d_rec.get(1):
+                msg = msg + str(ar) + chr(10)
+        if d_rec.get(1):
+            msg = msg + 'Вівторок:' + chr(10)
+            for ar in d_rec.get(1):
+                msg = msg + str(ar) + chr(10)
+        if d_rec.get(2):
+            msg = msg + 'Середа:' + chr(10)
+            for ar in d_rec.get(1):
+                msg = msg + str(ar) + chr(10)
+        if d_rec.get(3):
+            msg = msg + 'Четвер:' + chr(10)
+            for ar in d_rec.get(1):
+                msg = msg + str(ar) + chr(10)
+        if d_rec.get(4):
+            msg = msg + 'П''ятниця:' + chr(10)
+            for ar in d_rec.get(1):
+                msg = msg + str(ar) + chr(10)
+        if d_rec.get(5):
+            msg = msg + 'Субота:' + chr(10)
+            for ar in d_rec.get(1):
+                msg = msg + str(ar) + chr(10)
+        if d_rec.get(6):
+            msg = msg + 'Неділя:' + chr(10)
+            for ar in d_rec.get(1):
+                msg = msg + str(ar) + chr(10)
+    return msg
 
 
 # function which delete every last day of month lists for current month and rename lists for new monnths
@@ -50,16 +90,19 @@ def sheet_reinitialize(date_update):
     if current_date < date_update:
         return
     new_month = datetime.date.today().month + 1 if datetime.date.today().month < 12 else 1
-    year = str(datetime.date.today().year + 1) if new_month == 1 else str(datetime.date.today().year)
+    year = datetime.date.today().year + 1 if new_month == 1 else datetime.date.today().year
 
-    if new_month % 2 == 0 and new_month not in (8, 2):
-        max_day = 30
-    elif new_month == 2:
-        max_day = 28
-    else:
+    if new_month in (1, 3, 5, 7, 8, 10, 12):
         max_day = 31
+    elif new_month in (4, 6, 9, 11):
+        max_day = 30
+    elif new_month == 2 and year % 4 != 0:
+        max_day = 28
+    elif new_month == 2 and year % 4 == 0:
+        max_day = 29
 
     new_month = '0' + str(new_month) if new_month < 10 else str(new_month)
+    year = str(year)
     daydate = []
     for i in range(1, max_day):
         x = '0' + str(i) + '.' + new_month + '.' + year if i < 10 else str(i) + '.' + new_month + '.' + year
@@ -134,29 +177,44 @@ def sheet_reinitialize(date_update):
     ws2.set_dataframe(data2, (1, 1))
 
 
-# function for inserting data into gogglesheet
+# function for inserting data into googlesheet
 def insert(date, time, place, name, flag_month):
     cnt = 0
+    flg_rec = 0
     sh = gc.open('Графік Служіння')
     ws = sh[place + flag_month]
     msg = ''
-    for row in ws:
-        cnt = cnt + 1
-        if row[2] == '' and row[3] != name and row[0] == date and row[1] == time:
-            index_x = cnt
-            index_y = 3
-            ws.update_value((index_x, index_y), name)
-            msg = 'Ви були успішно записані на ' + date + ' число ' + time
-        elif row[3] == '' and row[2] != name and row[0] == date and row[1] == time:
-            index_x = cnt
-            index_y = 4
-            ws.update_value((index_x, index_y), name)
-            msg = 'Ви були успішно записані на ' + date + ' число ' + time
-        elif row[2] != '' and row[3] != '' and cnt != 1 and row[2] != name and row[3] != name:
-            msg = 'Нажаль, ця зміна заповнена.'
-        elif (row[3] == name or row[2] == name) and row[0] == date and row[1] == time:
-            msg = 'Ви вже записані в цю зміну.'
-    print('msg=',msg)
+    if place == 0:
+        ws1 = sh[place + flag_month + 1]
+    elif place == 1:
+        ws1 = sh[place + flag_month - 1]
+
+    # check date and time in other place for serving and compare that server has been recorded or not
+    for row in ws1:
+        if (row[2] == name or row[3] == name) and row[0] == date and (row[1] == time or
+                                                                      row[1][0:2] <= time[0:2] <= row[1][6:8] or
+                                                                      row[1][0:2] <= time[6:8] <= row[1][6:8]):
+            flg_rec = 2
+
+    if flg_rec != 2:
+        for row in ws:
+            cnt = cnt + 1
+            if row[2] == '' and row[3] != name and row[0] == date and row[1] == time:
+                index_x = cnt
+                index_y = 3
+                ws.update_value((index_x, index_y), name)
+                msg = 'Ви були успішно записані на ' + date + ' число ' + time
+            elif row[3] == '' and row[2] != name and row[0] == date and row[1] == time:
+                index_x = cnt
+                index_y = 4
+                ws.update_value((index_x, index_y), name)
+                msg = 'Ви були успішно записані на ' + date + ' число ' + time
+            elif row[2] != '' and row[3] != '' and cnt != 1 and row[2] != name and row[3] != name:
+                msg = 'Нажаль, ця зміна заповнена.'
+            elif (row[3] == name or row[2] == name) and row[0] == date and row[1] == time:
+                msg = 'Ви вже записані в цю зміну.'
+    else:
+        msg = 'Ви вже записані на цю зміну в іншому місці для служіння!'
     return msg
 
 
