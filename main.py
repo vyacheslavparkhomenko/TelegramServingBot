@@ -1,7 +1,7 @@
-# version 1.4.2
+# version 1.4.3
 # TelegramServingBot is a bot for inserting, deleting, viewing records about public serving
 # Created by Viacheslav Parkhomenko
-# Date of release: 18-AUG-2022
+# Date of release: 20-AUG-2022
 import logging
 import datetime
 import re
