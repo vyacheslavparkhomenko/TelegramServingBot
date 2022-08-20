@@ -495,7 +495,7 @@ def record_time(message):
         msg = bot.send_message(message.from_user.id, msg_gsht)
         if msg.text == 'Нажаль, ця зміна заповнена.' \
                 or msg.text == 'Ви вже записані в цю зміну.'\
-                or msg.text == 'Ви вже записані на цю зміну в іншому місці для служіння!':
+                or msg.text == 'Ви вже записані на цей час в іншому місці для служіння!':
             select_markup_timezone(weekday, message)
         else:
             partner = gsheet.list_of_partner(place, date_l, time, name, flag_month)
