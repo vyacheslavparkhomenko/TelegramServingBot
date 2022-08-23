@@ -4,6 +4,8 @@ import datetime
 
 # token for google sheets
 gc = pygsheets.authorize(service_account_file='token.json')
+#table_name = 'Графік Служіння'
+table_name  = 'Тест'
 
 # dictionary of time slots: 0-Monday, 5-Saturday and available timeslots
 time_slots = [{
@@ -66,18 +68,21 @@ def schedule_public(place):
 def sheet_delete():
     current_date = datetime.date.today().day
     current_month = datetime.date.today().month
-    if current_month % 2 == 0 and current_month not in (8, 2):
-        max_current_date = 30
-    elif current_month == 2:
-        max_current_date = 28
-    else:
-        max_current_date = 31
-    if current_date != max_current_date:
+    current_year = datetime.date.today().year
+    if current_month in (1, 3, 5, 7, 8, 10, 12):
+        max_day = 31
+    elif current_month in (4, 6, 9, 11):
+        max_day = 30
+    elif current_month == 2 and current_year % 4 != 0:
+        max_day = 28
+    elif current_month == 2 and current_year % 4 == 0:
+        max_day = 29
+    if current_date != max_day:
         return
     new_month = datetime.date.today().month + 1 if datetime.date.today().month < 12 else 1
     year = str(datetime.date.today().year + 1) if new_month == 1 else str(datetime.date.today().year)
     new_month = '0' + str(new_month) if new_month < 10 else str(new_month)
-    sh = gc.open('Графік Служіння')
+    sh = gc.open(table_name)
     sh.del_worksheet(sh.worksheet_by_title('Автостанція'))
     sh.del_worksheet(sh.worksheet_by_title('Лікарня'))
     sh.worksheet_by_title('Автостанція ' + new_month + '.' + year).title = 'Автостанція'
@@ -170,7 +175,7 @@ def sheet_reinitialize(date_update):
     data1 = data1.sort_values(by=['Дата', 'Зміна'])
     data2 = data2.sort_values(by=['Дата', 'Зміна'])
 
-    sh = gc.open('Графік Служіння')
+    sh = gc.open(table_name)
     ws1 = sh.add_worksheet('Автостанція ' + new_month + '.' + year)
     ws2 = sh.add_worksheet('Лікарня ' + new_month + '.' + year)
     ws1.set_dataframe(data1, (1, 1))
@@ -181,7 +186,7 @@ def sheet_reinitialize(date_update):
 def insert(date, time, place, name, flag_month):
     cnt = 0
     flg_rec = 0
-    sh = gc.open('Графік Служіння')
+    sh = gc.open(table_name)
     ws = sh[place + flag_month]
     msg = ''
     if place == 0:
@@ -221,7 +226,7 @@ def insert(date, time, place, name, flag_month):
 # function for deleting data from googlesheet
 def delete(date, time, place, name, flag_month):
     cnt = 0
-    sh = gc.open('Графік Служіння')
+    sh = gc.open(table_name)
     ws = sh[place + flag_month]
     msg = ''
     for row in ws:
@@ -243,7 +248,7 @@ def delete(date, time, place, name, flag_month):
 
 # function which output data only for user
 def my_records(name, flag_month=0):
-    sh = gc.open('Графік Служіння')
+    sh = gc.open(table_name)
     ws1 = sh[0 + flag_month]
     msg = 'Автостанція:' + chr(10)
     for row in ws1:
@@ -264,7 +269,7 @@ def my_records(name, flag_month=0):
 
 # function which prepared report for place of serving and current or next month
 def report(flag_month, place):
-    sh = gc.open('Графік Служіння')
+    sh = gc.open(table_name)
     ws = sh[flag_month + place]
     msg = ''
     msg_arr = []
@@ -286,7 +291,7 @@ def report(flag_month, place):
 
 
 def list_of_partner(place, date, time, name, flag_month):
-    sh = gc.open('Графік Служіння')
+    sh = gc.open(table_name)
     ws = sh[flag_month + place]
     partner = ''
     for row in ws:
@@ -297,3 +302,4 @@ def list_of_partner(place, date, time, name, flag_month):
                 partner = row[3]
 
     return partner
+

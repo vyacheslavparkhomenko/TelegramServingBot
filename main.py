@@ -1,7 +1,7 @@
-# version 1.4.3
+# version 2.4 (fixing global variable initialization)
 # TelegramServingBot is a bot for inserting, deleting, viewing records about public serving
 # Created by Viacheslav Parkhomenko
-# Date of release: 20-AUG-2022
+# Date of release: 22-AUG-2022
 import logging
 import datetime
 import re
@@ -12,11 +12,16 @@ import gsheet
 from time import sleep
 from telebot import types
 
+# WARNING!!!! before deployment on prod please dont forget change token to token_prod and table name to prod name
+
 # token for Telegram
-bot = telebot.TeleBot('5324290474:AAFqcVvBOy2tHsrrrRjho9JL9SZB8cZzcwk')
+token_test = '5702336698:AAH4VKZ9KQyNPY0BBfxAaivK_j0huuZzyiQ'
+token_prod = '5324290474:AAFqcVvBOy2tHsrrrRjho9JL9SZB8cZzcwk'
+
+bot = telebot.TeleBot(token_prod)
 
 # global variable updating date
-date_update = 25
+date_update = 24
 
 # global variables for user
 name = 'x'
@@ -31,12 +36,9 @@ flag_month = 0
 flag_option = 0
 
 # calculating current date, month and next month
-current_date = datetime.date.today().day
 current_month = datetime.date.today().month
 current_year = datetime.date.today().year
-next_month = 0
-max_current_date = 0
-max_next_date = 0
+
 # list of days to allow for recording: 0-Monday..6-Sunday
 list_of_days = [1, 5]
 
@@ -69,7 +71,7 @@ def view_month(message):
 
 
 # function for forming date of record
-def create_date(l_date, l_current_month, l_current_year, l_flag_month):
+def create_date(l_date, l_current_month, l_current_year):
     if l_date < 10:
         date_l = '0' + str(l_date)
     else:
@@ -85,40 +87,21 @@ def create_date(l_date, l_current_month, l_current_year, l_flag_month):
     return date_l
 
 
-def init_global_variables():
-    global current_date, current_month, current_year, next_month, max_current_date, max_next_date
-    # calculating current date, month and next month
-    current_date = datetime.date.today().day
-    current_month = datetime.date.today().month
-    current_year = datetime.date.today().year
-    next_month = current_month + 1 if current_month < 12 else 1
-    v_year = current_year + 1 if current_month == 12 else current_year
-
-    # calculating max date for month
-    if current_month in (1, 3, 5, 7, 8, 10, 12):
-        max_current_date = 31
-    elif current_month in (4, 6, 9, 11):
-        max_current_date = 30
-    elif current_month == 2 and current_year % 4 != 0:
-        max_current_date = 28
-    elif current_month == 2 and current_year % 4 == 0:
-        max_current_date = 29
-
-    if next_month in (1, 3, 5, 7, 8, 10, 12):
-        max_next_date = 31
-    elif next_month in (4, 6, 9, 11):
-        max_next_date = 30
-    elif next_month == 2 and v_year % 4 != 0:
-        max_next_date = 28
-    elif next_month == 2 and v_year % 4 == 0:
-        max_next_date = 29
+def get_max_date(month, year):
+    if month in (1, 3, 5, 7, 8, 10, 12):
+        max_date = 31
+    elif month in (4, 6, 9, 11):
+        max_date = 30
+    elif month == 2 and year % 4 != 0:
+        max_date = 28
+    elif month == 2 and year % 4 == 0:
+        max_date = 29
+    return max_date
 
 
 # ---------------------------------------markup functions---------------------------------------
 # function is to build markup for main menu
 def markup_main_menu(message):
-    # init global variables: current_date, current_month, current_year, next_month, max_current_date, max_next_date
-    init_global_variables()
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
     create = types.KeyboardButton('Записатися на зміну')
     drop = types.KeyboardButton('Виписатися зі зміни')
@@ -223,9 +206,10 @@ def select_markup_timezone(weekday, message):
 # bot start working (state 0)
 @bot.message_handler(commands=['start'])
 def start(message):
+    global current_year, current_month
+    current_month = datetime.date.today().month
+    current_year = datetime.date.today().year
     bot.clear_step_handler(message)
-    # init global variables: current_date, current_month, current_year, next_month, max_current_date, max_next_date
-    init_global_variables()
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
     create = types.KeyboardButton('Записатися на зміну')
     drop = types.KeyboardButton('Виписатися зі зміни')
@@ -243,6 +227,7 @@ def start(message):
 @bot.message_handler(content_types=['text'])
 def handle_text(message):
     global name, flag_option, date_update
+    current_date = datetime.date.today().day
     if message.text == 'Записатися на зміну':
         flag_option = 0
         # if current date is less than 24 recording for new month is closed
@@ -323,7 +308,7 @@ def handle_text(message):
             markup.add(place1, place2, item1)
             msg = bot.send_message(message.from_user.id, 'Оберіть місце служіння з якого ви хочете виписатися:', reply_markup=markup)
             bot.register_next_step_handler(msg, record_place)
-            # if it is greater than 24, then will added adding menu
+        # if it is greater than 24, then will added adding menu
         else:
             markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
             place1 = types.KeyboardButton('Поточний місяць')
@@ -350,13 +335,11 @@ def handle_text(message):
 
 # state 2 of bot: select month if current date >= 24
 def record_month(message):
-    global flag_month, current_month, current_year
+    global flag_month
     if message.text == 'Поточний місяць':
         flag_month = 0
     elif message.text == 'Наступний місяць':
         flag_month = 2
-        current_year = current_year + 1 if current_month == 12 else current_year
-        current_month = current_month + 1 if current_month < 12 else 1
     elif message.text == 'Назад':
         markup_main_menu(message)
     elif message.text == '/start':
@@ -386,7 +369,7 @@ def record_month(message):
 # state 3 of bot if current_date >= 24: select place of serving
 def record_place(message):
     global place, flag_option, date_update
-
+    current_date = datetime.date.today().day
     if message.text == 'Автостанція':
         place = 0
     elif message.text == 'Лікарня':
@@ -427,14 +410,30 @@ def record_place(message):
 # state 3(<24): select date of serving
 # state 4(>=24): select date of serving
 def record_date(message):
-    global date, place, max_current_date, max_next_date, current_year
+    global date, place, current_year, current_month
+    current_year = datetime.date.today().year
+    current_month = datetime.date.today().month
+
+    if flag_month == 0:
+        current_year = datetime.date.today().year
+        current_month = datetime.date.today().month
+    elif flag_month == 2:
+        current_year = datetime.date.today().year if current_month < 12 else datetime.date.today().year + 1
+        current_month = datetime.date.today().month + 1 if current_month < 12 else 1
+
+    current_date = datetime.date.today().day
     date = message.text
+
     if date == 'Назад':
         markup_place_menu(message)
     elif message.text == '/start':
         start(message)
-    elif (flag_month == 0 and date.isdigit() and current_date <= int(date) <= max_current_date and message.text != 'Назад') or\
-            (flag_month == 2 and date.isdigit() and 1 <= int(date) <= max_next_date and message.text != 'Назад'):
+    elif (flag_month == 0 and date.isdigit() and
+          current_date <= int(date) <= get_max_date(current_month, current_year) and
+          message.text != 'Назад') or \
+         (flag_month == 2 and date.isdigit() and
+          1 <= int(date) <= get_max_date(current_month, current_year) and
+          message.text != 'Назад'):
 
         weekday = datetime.date(current_year, current_month, int(date)).weekday()
 
@@ -474,9 +473,20 @@ def record_date(message):
 # state 4(<24): select time of serving
 # state 5(>=24): select time of serving
 def record_time(message):
-    global date, time
+    global date, time, current_year, current_month
     time = message.text
+    current_year = datetime.date.today().year
+    current_month = datetime.date.today().month
+
+    if flag_month == 0:
+        current_year = datetime.date.today().year
+        current_month = datetime.date.today().month
+    elif flag_month == 2:
+        current_year = datetime.date.today().year if current_month < 12 else datetime.date.today().year + 1
+        current_month = datetime.date.today().month + 1 if current_month < 12 else 1
+
     weekday = datetime.date(current_year, current_month, int(date)).weekday()
+
     if time == 'Назад':
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
         item1 = types.KeyboardButton('Назад')
@@ -490,7 +500,7 @@ def record_time(message):
         bot.register_next_step_handler(msg, record_date)
 
     elif time in time_slots[place].get(weekday) and flag_option == 0:
-        date_l = create_date(int(date), current_month, current_year, flag_month)
+        date_l = create_date(int(date), current_month, current_year)
         msg_gsht = gsheet.insert(date_l, time, place, name, flag_month)
         msg = bot.send_message(message.from_user.id, msg_gsht)
         if msg.text == 'Нажаль, ця зміна заповнена.' \
@@ -505,7 +515,7 @@ def record_time(message):
             markup_main_menu(message)
 
     elif time in time_slots[place].get(weekday) and flag_option == 1:
-        date_l = create_date(int(date), current_month, current_year, flag_month)
+        date_l = create_date(int(date), current_month, current_year)
         msg_gsht = gsheet.delete(date_l, time, place, name, flag_month)
         bot.send_message(message.from_user.id, msg_gsht)
         if msg_gsht == 'Ви не були записані на цю зміну!':

@@ -11,12 +11,16 @@ time_slots = [{
     5: ['08:00-10:00', '10:00-12:00', '12:00-14:00']
 }]
 
+table_name = 'Тест'
+
 # token for google sheets
 gc = pygsheets.authorize(service_account_file='token.json')
+
 
 def get_weekday(date):
     weekday = datetime.datetime.strptime(date, '%d.%m.%Y').weekday()
     return weekday
+
 
 new_month = datetime.date.today().month
 year = str(datetime.date.today().year)
@@ -96,7 +100,7 @@ data2['Служитель2'] = ''
 data1 = data1.sort_values(by=['Дата', 'Зміна'])
 data2 = data2.sort_values(by=['Дата', 'Зміна'])
 
-sh = gc.open('Графік Служіння')
+sh = gc.open(table_name)
 ws1 = sh.add_worksheet('Автостанція ')
 ws2 = sh.add_worksheet('Лікарня ')
 ws1.set_dataframe(data1, (1, 1))
