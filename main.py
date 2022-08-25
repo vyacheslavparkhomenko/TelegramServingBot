@@ -1,4 +1,4 @@
-# version 2.4 (fixing global variable initialization)
+# version 2.4.1 (fixing global variable initialization)
 # TelegramServingBot is a bot for inserting, deleting, viewing records about public serving
 # Created by Viacheslav Parkhomenko
 # Date of release: 22-AUG-2022
@@ -21,7 +21,7 @@ token_prod = '5324290474:AAFqcVvBOy2tHsrrrRjho9JL9SZB8cZzcwk'
 bot = telebot.TeleBot(token_prod)
 
 # global variable updating date
-date_update = 24
+date_update = 25
 
 # global variables for user
 name = 'x'
@@ -68,6 +68,7 @@ def view_month(message):
     elif message.text == 'Наступний місяць':
         msg = gsheet.my_records(name, flag_month=2)
         bot.send_message(message.from_user.id, msg)
+    markup_main_menu(message)
 
 
 # function for forming date of record
@@ -395,13 +396,13 @@ def record_place(message):
 
     # mode for reviewing data
     if message.text == 'Автостанція' and flag_option == 2:
-        msg_arr = gsheet.report(flag_month=0, place=0) if current_date < date_update else gsheet.report(flag_month=2, place=0)
+        msg_arr = gsheet.report(flag_month=flag_month, place=0)
         for msg in msg_arr:
             bot.send_message(message.chat.id, msg)
         markup_main_menu(message)
 
     elif message.text == 'Лікарня' and flag_option == 2:
-        msg_arr = gsheet.report(flag_month=0, place=1) if current_date < date_update else gsheet.report(flag_month=2, place=1)
+        msg_arr = gsheet.report(flag_month=flag_month, place=1)
         for msg in msg_arr:
             bot.send_message(message.chat.id, msg)
         markup_main_menu(message)
