@@ -65,10 +65,20 @@ def view_month(message):
     elif message.text == 'Поточний місяць':
         msg = gsheet.my_records(name, flag_month=0)
         bot.send_message(message.from_user.id, msg)
+        markup_main_menu(message)
     elif message.text == 'Наступний місяць':
         msg = gsheet.my_records(name, flag_month=2)
         bot.send_message(message.from_user.id, msg)
-    markup_main_menu(message)
+        markup_main_menu(message)
+    else:
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+        place1 = types.KeyboardButton('Поточний місяць')
+        place2 = types.KeyboardButton('Наступний місяць')
+        item1 = types.KeyboardButton('Назад')
+        markup.add(place1, place2, item1)
+        bot.send_message(message.from_user.id, 'Ви ввели невірне значення місяця!')
+        msg = bot.send_message(message.from_user.id, 'Оберіть, будь-ласка, значення з меню:', reply_markup=markup)
+        bot.register_next_step_handler(msg, view_month)
 
 
 # function for forming date of record
@@ -218,14 +228,15 @@ def start(message):
     graph = types.KeyboardButton('Графік стенду')
 
     markup.add(create, drop, alter, graph)
-    bot.send_message(message.chat.id,
-                     'Раді вітати. Розпочніть роботу з ботом. Виберіть команду з меню.',
-                     reply_markup=markup)
+    msg = bot.send_message(message.from_user.id,
+                           'Раді вітати. Розпочніть роботу з ботом. Виберіть команду з меню.',
+                           reply_markup=markup)
+    bot.register_next_step_handler(msg, handle_text)
 
 
 # start 1 of bot (calc name and select place or month for recording (available from 24th every month)
 # state 1 of bot: select my serving times
-@bot.message_handler(content_types=['text'])
+@bot.message_handler(commands=['Записатися на зміну', 'Мої зміни', 'Виписатися зі зміни', 'Графік стенду'])
 def handle_text(message):
     global name, flag_option, date_update
     current_date = datetime.date.today().day
